@@ -1,1 +1,0 @@
-export {WaredForm} from "./WaredForm";

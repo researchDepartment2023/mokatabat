@@ -1,1 +1,0 @@
-export {WaredBox} from './WaredBox'

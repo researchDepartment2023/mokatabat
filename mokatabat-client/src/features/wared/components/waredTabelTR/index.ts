@@ -1,1 +1,0 @@
-export {WaredTabelTR} from './WaredTabelTR'
