@@ -10,8 +10,6 @@ interface SearchFormProps {
   setsubject: any;
   setBranchId: any;
   setOfficerId: any;
-  fetchSearchResults: any;
-  fetchRowsWithNoParams: any;
   docNum: any;
   gehaaId: any;
   subject: any;
@@ -23,6 +21,7 @@ interface SearchFormProps {
   isFetchUnreadSader: any;
   setIsFetchUnreadSader: any;
   setClosedWaredDocNum: any;
+  fetchSearchResults: any;
 }
 function SearchBox(props: SearchFormProps) {
   const [isSearched, setIsSearched] = useState(false);
@@ -30,10 +29,7 @@ function SearchBox(props: SearchFormProps) {
   const [branchsOptions, setBranchsOptions] = useState([]);
   const [officersOptions, setOfficersOptions] = useState([""]);
 
-  const [selectedGehaaName, setSelectedGehaaName] = useState("");
-  const [selectedBranchName, setSelectedBranchName] = useState("");
-  const [selectedOfficerName, setSelectedOfficerName] = useState("");
-  const clearSearchParams = () => {
+  const clearSearchParamsAndRefetch = () => {
     props.setDocNum("");
     props.setGehaaId("");
     props.setsubject("");
@@ -41,13 +37,10 @@ function SearchBox(props: SearchFormProps) {
     props.setOfficerId("");
     props.setMokatbaDate("");
     props.setClosedWaredDocNum("");
-    props.fetchRowsWithNoParams();
-    setSelectedOfficerName("");
-    setSelectedBranchName("");
-    setSelectedGehaaName("");
-    setIsSearched(false);
     props.setIsFetchUnreadSader(false);
+    setIsSearched(false);
 
+    props.fetchSearchResults();
   };
   useEffect(() => {
     axios.get("/api/saderoptions").then((res) => {
@@ -215,7 +208,7 @@ function SearchBox(props: SearchFormProps) {
             />
           </div>
           <div className="d-flex justify-content-evenly">
-            <button
+            {/* <button
               className="btn btn-primary fs-4 btn-lg  px-5"
               onClick={() => {
                 props.fetchSearchResults();
@@ -223,14 +216,14 @@ function SearchBox(props: SearchFormProps) {
               }}
             >
               بحث
-            </button>
+            </button> */}
             <button
               className="btn btn-danger fs-4 btn-lg px-5"
               onClick={() => {
-                clearSearchParams();
+                clearSearchParamsAndRefetch();
               }}
             >
-              الغاء
+              الغاء البحث
             </button>
           </div>
         </form>

@@ -10,6 +10,8 @@ import { selectUser } from "../../../user/stores/userSlice";
 import { useSelector } from "react-redux";
 import WaredOverlayContent from "../waredOverlayContent";
 import Overlay from "../../../../components/Overlay/Overlay";
+import { useQuery } from "react-query";
+import get from "../../../serverApis/get";
 
 interface IProps {
   /**
@@ -21,10 +23,8 @@ function WaredBox(props: IProps) {
   const user = useSelector(selectUser);
 
   const [waredBoxTypeTitle, setWaredBoxTypeTitle] = useState<string>("");
-  const [waredBoxTypeTitleColor, setWaredBoxTypeTitleColor] = useState<string>(
-    ""
-  );
-  const [waredBoxRecords, setWaredBoxRecords] = useState<any[]>([]);
+  const [waredBoxTypeTitleColor, setWaredBoxTypeTitleColor] =
+    useState<string>("");
   const [numOfRecords, setNumOfRecords] = useState<any>(20);
   const [pageNum, setPageNum] = useState<any>(1);
   const [docNum, setDocNum] = useState("");
@@ -36,7 +36,6 @@ function WaredBox(props: IProps) {
   const [mokatbaDate, setMokatbaDate] = useState("");
   //TODO this must be fetched from server
   const [DaysBeforeExecution, setDaysBeforeExecution] = useState("0");
-  const [isShowSpinner, setIsShowSpinner] = useState(true);
   /*
   0 : بدون حد ادني او اقصى للتنفيذ
   1 : قريبة من الحد الاقصى للتنفي 
@@ -54,49 +53,19 @@ function WaredBox(props: IProps) {
   );
 
   const [isWaredOverlayOpen, setIsWaredOverlayOpen] = useState(false);
-  const [opennedWaredIdInOverlay, setOpennedWaredIdInOverlayId] = useState<any>(
-    ""
-  );
+  const [opennedWaredIdInOverlay, setOpennedWaredIdInOverlayId] =
+    useState<any>("");
 
   const [isFetchUnreadWared, setIsFetchUnreadWared] = useState(false);
 
-  // const fetchSearchResults = () => {
-  //   setIsShowSpinner(true);
-  //   setWaredBoxRecords([]);
-  //   setPageNum(1);
-  //   axios
-  //     .get("/api/waredbox/search", {
-  //       params: {
-  //         docNum,
-  //         docDeptNum,
-  //         gehaaId,
-  //         subject,
-  //         branchId,
-  //         officerId,
-  //         mokatbaDate,
-  //         DaysBeforeExecution,
-  //         withinExcutionTimeType,
-  //         pageNum: 0,
-  //         numOfRecords,
-  //       },
-  //     })
-  //     .then((res) => {
-  //       if (res.data) {
-  //         setWaredBoxRecords(res.data);
-  //         setIsShowSpinner(false);
-  //         window.scroll({
-  //           top: 500,
-  //           left: 0,
-  //           behavior: "smooth",
-  //         });
-  //       }
-  //     });
-  // };
-
-  function fetchRowsWithParams() {
-    setIsShowSpinner(true);
-    setWaredBoxRecords([]);
-    console.log("fetchRowsWithParams", {
+  const {
+    data: fetchWared,
+    isLoading: isWaredLoading,
+    error,
+    refetch: refetchWared,
+  } = useQuery(
+    [
+      "fetchWared",
       docNum,
       docDeptNum,
       gehaaId,
@@ -106,74 +75,36 @@ function WaredBox(props: IProps) {
       mokatbaDate,
       DaysBeforeExecution,
       withinExcutionTimeType,
-      pageNum: pageNum - 1,
+      pageNum,
       numOfRecords,
-    });
-    axios
-      .get("/api/waredbox/search", {
-        params: {
-          docNum,
-          docDeptNum,
-          gehaaId,
-          subject,
-          branchId,
-          officerId,
-          mokatbaDate,
-          DaysBeforeExecution,
-          withinExcutionTimeType,
-          pageNum: pageNum - 1,
-          numOfRecords,
-          unreadWared: isFetchUnreadWared,
-        },
-      })
-      .then((res) => {
-        if (res.data) {
-          setIsShowSpinner(false);
-          setWaredBoxRecords(res.data);
-          window.scroll({
-            top: 500,
-            left: 0,
-            behavior: "smooth",
-          });
-        }
-      });
-  }
+      isFetchUnreadWared,
+    ],
+    () => {
+      const params = {
+        docNum,
+        docDeptNum,
+        gehaaId,
+        subject,
+        branchId,
+        officerId,
+        mokatbaDate,
+        DaysBeforeExecution,
+        withinExcutionTimeType,
+        pageNum: pageNum - 1,
+        numOfRecords,
+        unreadWared: isFetchUnreadWared,
+      };
+
+      return get(params, "/api/waredbox/search");
+    }
+  );
 
   const fetchDaysBeforeExecution = () => {
     axios.get("/api/waredoptions/getDaysBeforeExecution").then((res: any) => {
       setDaysBeforeExecution(res.data);
     });
   };
-  /**
-   *if it's a red circle/green Page default params must have ExcutionTime params
-   *
-   */
-  const fetchRowsWithNoParams = () => {
-    window.scroll(0, 450);
 
-    let excutionTimeParams =
-      props.waredBoxType !== waredBoxType.normal
-        ? { DaysBeforeExecution, withinExcutionTimeType }
-        : {};
-    // console.log({ excutionTimeParams });
-    axios
-      .get("/api/waredbox/search", {
-        params: {
-          withinExcutionTimeType: "0",
-          pageNum: 0,
-          numOfRecords,
-          ...excutionTimeParams,
-        },
-      })
-      .then((res) => {
-        if (res.data) {
-          setIsShowSpinner(false);
-          setWaredBoxRecords(res.data);
-          // console.log(res.data.length);
-        }
-      })
-      .catch((err) => console.log({ err }));
-  };
   useEffect(() => {
     if (props.waredBoxType === waredBoxType.normal) {
       setWaredBoxTypeTitle("صندوق الوارد");
@@ -191,17 +122,13 @@ function WaredBox(props: IProps) {
   }, []);
 
   useEffect(() => {
-    fetchRowsWithParams();
-  }, [pageNum, numOfRecords]);
-
-  useEffect(() => {
     if (user) {
-      socket.on(socketIoEvent.refetchWared, fetchRowsWithParams);
-      socket.on(socketIoEvent.refetchWared + user.id, fetchRowsWithParams);
+      socket.on(socketIoEvent.refetchWared, refetchWared);
+      socket.on(socketIoEvent.refetchWared + user.id, refetchWared);
     }
     return () => {
-      socket.off(socketIoEvent.refetchWared, fetchRowsWithParams);
-      socket.off(socketIoEvent.refetchWared + user.id, fetchRowsWithParams);
+      socket.off(socketIoEvent.refetchWared, refetchWared);
+      socket.off(socketIoEvent.refetchWared + user.id, refetchWared);
     };
   }, [
     docNum,
@@ -268,8 +195,7 @@ function WaredBox(props: IProps) {
           DaysBeforeExecution={DaysBeforeExecution}
           withinExcutionTimeType={withinExcutionTimeType}
           setWithinExcutionTimeType={setWithinExcutionTimeType}
-          fetchSearchResults={fetchRowsWithParams}
-          fetchRowsWithNoParams={fetchRowsWithNoParams}
+          fetchSearchResults={refetchWared}
           //TODO
           waredBoxType={props.waredBoxType}
         />
@@ -313,81 +239,84 @@ function WaredBox(props: IProps) {
         </div>
         <hr />
 
-        {isShowSpinner ? (
+        {isWaredLoading ? (
           <HorizontalSpinner />
         ) : (
-          <table className="table table-hover fs-4">
-            <thead className={""}>
-              <tr>
-                <th scope="col">رقم الوارد</th>
-                <th scope="col">رقم الادارة</th>
-                <th scope="col" style={{ width: "25%" }}>
-                  موضوع المكاتبة
-                </th>
-                <th scope="col" style={{ width: "10%" }}>
-                  تاريخ المكاتبة
-                </th>
-                <th scope="col" style={{ width: "15%" }}>
-                  الضباط المختصين
-                </th>
-                <th scope="col" style={{ width: "15%" }}>
-                  الافرع المختصة
-                </th>
-                <th scope="col" style={{ width: "25%" }}>
-                  جهة الوارد
-                </th>
-                <th scope="col" style={{ width: "10%" }}>
-                  تاريخ التنفيذ
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {waredBoxRecords.map((row: any, index: number) => {
-                return (
-                  <WaredTabelTR
-                    key={row.id}
-                    row={row}
-                    DaysBeforeExecution={DaysBeforeExecution}
-                    setOpennedWaredInOverlayId={setOpennedWaredIdInOverlayId}
-                  ></WaredTabelTR>
-                );
-              })}
-            </tbody>
-          </table>
+          <>
+            <table className="table table-hover fs-4">
+              <thead className={""}>
+                <tr>
+                  <th scope="col">رقم الوارد</th>
+                  <th scope="col">رقم الادارة</th>
+                  <th scope="col" style={{ width: "25%" }}>
+                    موضوع المكاتبة
+                  </th>
+                  <th scope="col" style={{ width: "10%" }}>
+                    تاريخ المكاتبة
+                  </th>
+                  <th scope="col" style={{ width: "15%" }}>
+                    الضباط المختصين
+                  </th>
+                  <th scope="col" style={{ width: "15%" }}>
+                    الافرع المختصة
+                  </th>
+                  <th scope="col" style={{ width: "25%" }}>
+                    جهة الوارد
+                  </th>
+                  <th scope="col" style={{ width: "10%" }}>
+                    تاريخ التنفيذ
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {fetchWared.map((row: any, index: number) => {
+                  return (
+                    <WaredTabelTR
+                      key={row.id}
+                      row={row}
+                      DaysBeforeExecution={DaysBeforeExecution}
+                      setOpennedWaredInOverlayId={setOpennedWaredIdInOverlayId}
+                    ></WaredTabelTR>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="d-flex justify-content-center align-items-center">
+              <div className="d-flex flex-column text-center">
+                <span className="fs-3">رقم الصفحة :{pageNum}</span>
+                <nav aria-label="Page navigation example" className="fs-4">
+                  <ul className="pagination">
+                    {pageNum > 1 && (
+                      <li className="page-item">
+                        <button
+                          className="page-link fs-3"
+                          onClick={() => {
+                            setPageNum(Number(pageNum) - 1);
+                          }}
+                        >
+                          الصفحة السابقة
+                        </button>
+                      </li>
+                    )}
+                    {fetchWared.length >= numOfRecords && (
+                      <li className="page-item">
+                        <button
+                          className="page-link fs-3"
+                          onClick={() => {
+                            setPageNum(Number(pageNum) + 1);
+                          }}
+                        >
+                          الصفحةالتالية
+                        </button>
+                      </li>
+                    )}
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </>
         )}
-        <div className="d-flex justify-content-center align-items-center">
-          <div className="d-flex flex-column text-center">
-            <span className="fs-3">رقم الصفحة :{pageNum}</span>
-            <nav aria-label="Page navigation example" className="fs-4">
-              <ul className="pagination">
-                {pageNum > 1 && (
-                  <li className="page-item">
-                    <button
-                      className="page-link fs-3"
-                      onClick={() => {
-                        setPageNum(pageNum - 1);
-                      }}
-                    >
-                      الصفحة السابقة
-                    </button>
-                  </li>
-                )}
-                {waredBoxRecords.length >= numOfRecords && (
-                  <li className="page-item">
-                    <button
-                      className="page-link fs-3"
-                      onClick={() => {
-                        setPageNum(pageNum + 1);
-                      }}
-                    >
-                      الصفحةالتالية
-                    </button>
-                  </li>
-                )}
-              </ul>
-            </nav>
-          </div>
-        </div>
       </div>
     </>
   );

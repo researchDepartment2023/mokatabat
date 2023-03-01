@@ -13,7 +13,6 @@ interface SearchFormProps {
   setDaysBeforeExecution: any;
   setWithinExcutionTimeType: any;
   fetchSearchResults: any;
-  fetchRowsWithNoParams: any;
   docNum: any;
   docDeptNum: any;
   gehaaId: any;
@@ -27,7 +26,7 @@ interface SearchFormProps {
   DaysBeforeExecution: any;
   withinExcutionTimeType: any;
   waredBoxType: string;
-  setPageNum:any
+  setPageNum: any;
 }
 function SearchBox(props: SearchFormProps) {
   const [isSearched, setIsSearched] = useState(false);
@@ -44,13 +43,10 @@ function SearchBox(props: SearchFormProps) {
   1 : قريبة من الحد الاقصى للتنفي 
   2 : بعيدة عن الحد الاقثى للتنفبذ
   */
-  const [
-    showDaysBeforeExecutionFields,
-    setShowDaysBeforeExecutionFields,
-  ] = useState<boolean>(true);
-  const [defaultDaysBeforeExecution, setDefaultDaysBeforeExecution] = useState(
-    "0"
-  );
+  const [showDaysBeforeExecutionFields, setShowDaysBeforeExecutionFields] =
+    useState<boolean>(true);
+  const [defaultDaysBeforeExecution, setDefaultDaysBeforeExecution] =
+    useState("0");
 
   const getOptionNameById = useCallback((optionId: string, options: any[]) => {
     // console.log({gehaaId})
@@ -327,15 +323,6 @@ function SearchBox(props: SearchFormProps) {
           </div>
           <div className="d-flex justify-content-evenly">
             <button
-              className="btn btn-primary fs-4 btn-lg  px-5"
-              onClick={() => {
-                props.fetchSearchResults();
-                setIsSearched(true);
-              }}
-            >
-              بحث
-            </button>
-            <button
               className="btn btn-danger fs-4 btn-lg px-5"
               onClick={() => {
                 const withinExcutionTimeTypeDefaultValue =
@@ -351,21 +338,21 @@ function SearchBox(props: SearchFormProps) {
                 props.setOfficerId("");
                 props.setMokatbaDate("");
                 props.setDocDeptNum("");
-                props.setPageNum(1)
+                props.setPageNum(1);
                 props.setDaysBeforeExecution(defaultDaysBeforeExecution);
                 props.setWithinExcutionTimeType(
                   withinExcutionTimeTypeDefaultValue
                 );
                 props.setIsFetchUnreadWared(false);
-                props.fetchRowsWithNoParams();
 
                 setSelectedOfficerName("");
                 setSelectedBranchName("");
                 setSelectedGehaaName("");
                 setIsSearched(false);
+                props.fetchSearchResults();
               }}
             >
-              الغاء
+              الغاء البحث
             </button>
           </div>
         </form>

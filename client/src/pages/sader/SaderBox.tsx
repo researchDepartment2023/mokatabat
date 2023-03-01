@@ -9,11 +9,11 @@ import { useSelector } from "react-redux";
 import { socketIoEvent } from "../../types";
 import Overlay from "../../components/Overlay/Overlay";
 import SaderOverlayContent from "../../features/sader/components/saderOverlayContent";
+import { useQuery } from "react-query";
+import get from "../../features/serverApis/get";
 
 function SaderBox() {
   const user = useSelector(selectUser);
-
-  const [saderBoxRecords, setSaderBoxRecords] = useState<any[]>([]);
   const [numOfRecords, setNumOfRecords] = useState<any>(20);
   const [pageNum, setPageNum] = useState<any>(1);
 
@@ -24,114 +24,48 @@ function SaderBox() {
   const [branchId, setBranchId] = useState("");
   const [officerId, setOfficerId] = useState<any>("");
   const [mokatbaDate, setMokatbaDate] = useState("");
-  const [isShowSpinner, setIsShowSpinner] = useState(true);
   const [isSaderOverlayOpen, setIsSaderOverlayOpen] = useState(false);
 
-  const [opennedSaderIdInOverlay, setOpennedSaderIdInOverlayId] = useState<any>(
-    ""
-  );
-  /*
-  0 : بدون حد ادني او اقصى للتنفيذ
-  1 : قريبة من الحد الاقصى للتنفي 
-  2 : بعيدة عن الحد الاقثى للتنفبذ
-  */
+  const [opennedSaderIdInOverlay, setOpennedSaderIdInOverlayId] =
+    useState<any>("");
 
-  //   setIsShowSpinner(true);
-  //   setSaderBoxRecords([]);
-  //   setPageNum(1);
-  //   axios
-  //     .get("/api/saderbox/search", {
-  //       params: {
-  //         docNum,
-  //         gehaaId,
-  //         closedWaredDocNum: closedWaredDocNum,
-  //         subject,
-  //         branchId,
-  //         officerId,
-  //         mokatbaDate,
-  //         //we are making pageNum == 0 because db skip
-  //         pageNum: 0,
-  //         numOfRecords,
-  //       },
-  //     })
-  //     .then((res) => {
-  //       if (res.data) {
-  //         console.log({ data: res.data });
-  //         setSaderBoxRecords(res.data);
-  //         setIsShowSpinner(false);
-  //         window.scroll({
-  //           top: 500,
-  //           left: 0,
-  //           behavior: "smooth",
-  //         });
-  //       }
-  //     });
-  // };
   const [isFetchUnreadSader, setIsFetchUnreadSader] = useState(false);
+  const {
+    data: fetchedSader,
+    isLoading: isSaderLoading,
+    error,
+    refetch: refetchSader,
+  } = useQuery(
+    [
+      "fetchSader",
+      docNum,
+      gehaaId,
+      closedWaredDocNum,
+      subject,
+      branchId,
+      officerId,
+      mokatbaDate,
+      pageNum,
+      numOfRecords,
+      isFetchUnreadSader,
+    ],
+    () => {
+      const params = {
+        docNum,
+        gehaaId,
+        closedWaredDocNum,
+        subject,
+        branchId,
+        officerId,
+        mokatbaDate,
+        pageNum: pageNum - 1,
+        numOfRecords,
+        unreadSader: isFetchUnreadSader,
+      };
 
-  const fetchRowsWithParams = () => {
-    // window.scroll(0, 450);
-
-    setIsShowSpinner(true);
-    setSaderBoxRecords([]);
-
-    axios
-      .get("/api/saderbox/search", {
-        params: {
-          docNum,
-          gehaaId,
-          closedWaredDocNum: closedWaredDocNum,
-          subject,
-          branchId,
-          officerId,
-          mokatbaDate,
-          pageNum: pageNum - 1,
-          numOfRecords,
-          unreadSader: isFetchUnreadSader,
-        },
-      })
-      .then((res) => {
-        if (res.data) {
-          setSaderBoxRecords(res.data);
-          setIsShowSpinner(false);
-          window.scroll({
-            top: 500,
-            left: 0,
-            behavior: "smooth",
-          });
-        }
-      });
-  };
-  const fetchRowsWithNoParams = () => {
-    // window.scrollTo(0, 500);
-    window.scroll({
-      top: 500,
-      left: 0,
-      behavior: "smooth",
-    });
-    // setIsShowSpinner(true);
-    // window.scroll(0, 450);
-    axios
-      .get("/api/saderbox/search", {
-        params: {
-          withinExcutionTimeType: "0",
-          pageNum: 0,
-          numOfRecords,
-        },
-      })
-      .then((res) => {
-        if (res.data) {
-          setSaderBoxRecords(res.data);
-          // setIsShowSpinner(false);
-          // window.scrollTo(0, 500);
-          setIsShowSpinner(false);
-        }
-      })
-      .catch((err) => console.log({ err }));
-  };
-  useEffect(() => {
-    fetchRowsWithParams();
-  }, [pageNum, numOfRecords]);
+      return get(params, "/api/saderbox/search");
+    }
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -143,12 +77,12 @@ function SaderBox() {
 
   useEffect(() => {
     if (user) {
-      socket.on(socketIoEvent.refetchSader, fetchRowsWithParams);
-      socket.on(socketIoEvent.refetchSader + user.id, fetchRowsWithParams);
+      socket.on(socketIoEvent.refetchSader, refetchSader);
+      socket.on(socketIoEvent.refetchSader + user.id, refetchSader);
     }
     return () => {
-      socket.off(socketIoEvent.refetchSader, fetchRowsWithParams);
-      socket.off(socketIoEvent.refetchSader + user.id, fetchRowsWithParams);
+      socket.off(socketIoEvent.refetchSader, refetchSader);
+      socket.off(socketIoEvent.refetchSader + user.id, refetchSader);
     };
   }, [
     docNum,
@@ -163,7 +97,6 @@ function SaderBox() {
   ]);
 
   useEffect(() => {
-    // console.log({ opennedWaredInOverlayId, isOpen: !!opennedWaredInOverlayId });
     setIsSaderOverlayOpen(!!opennedSaderIdInOverlay);
   }, [opennedSaderIdInOverlay]);
 
@@ -172,6 +105,7 @@ function SaderBox() {
       setOpennedSaderIdInOverlayId("");
     }
   }, [isSaderOverlayOpen]);
+
   return (
     <>
       {isSaderOverlayOpen && (
@@ -199,8 +133,7 @@ function SaderBox() {
           closedWaredDocNum={closedWaredDocNum}
           setClosedWaredDocNum={setClosedWaredDocNum}
           setMokatbaDate={setMokatbaDate}
-          fetchSearchResults={fetchRowsWithParams}
-          fetchRowsWithNoParams={fetchRowsWithNoParams}
+          fetchSearchResults={refetchSader}
           isFetchUnreadSader={isFetchUnreadSader}
           setIsFetchUnreadSader={setIsFetchUnreadSader}
         />
@@ -244,86 +177,94 @@ function SaderBox() {
           </div>
         </div>
         <hr />
-        {isShowSpinner ? (
+        {isSaderLoading ? (
           <Spinner />
         ) : (
-          <table className="table table-hover fs-4">
-            <thead className={""}>
-              <tr>
-                <th scope="col" style={{ width: "10%" }}>
-                  رقم الصادر
-                </th>
-                <th scope="col" style={{ width: "10%" }}>
-                  تاريخ الصادر
-                </th>
-                <th scope="col" style={{ width: "25%" }}>
-                  موضوع الصادر
-                </th>
-                <th scope="col" style={{ width: "20%" }}>
-                  جهة الصادر
-                </th>
+          <>
+            {fetchedSader && (
+              <>
+                <table className="table table-hover fs-4">
+                  <thead className={""}>
+                    <tr>
+                      <th scope="col" style={{ width: "10%" }}>
+                        رقم الصادر
+                      </th>
+                      <th scope="col" style={{ width: "10%" }}>
+                        تاريخ الصادر
+                      </th>
+                      <th scope="col" style={{ width: "25%" }}>
+                        موضوع الصادر
+                      </th>
+                      <th scope="col" style={{ width: "20%" }}>
+                        جهة الصادر
+                      </th>
 
-                <th scope="col" style={{ width: "12%" }}>
-                  الضابط المختص
-                </th>
-                <th scope="col" style={{ width: "12%" }}>
-                  الفرع المختص
-                </th>
+                      <th scope="col" style={{ width: "12%" }}>
+                        الضابط المختص
+                      </th>
+                      <th scope="col" style={{ width: "12%" }}>
+                        الفرع المختص
+                      </th>
 
-                {/* <th scope="col">الإتجاه المختص</th> */}
-                {/* <th scope="col">الضابط المختص</th> */}
-                <th scope="col" style={{ width: "15%" }}>
-                  وجوب رد وارد رقم
-                </th>
-                {/* <th scope="col">متصلة بوارد</th> */}
-              </tr>
-            </thead>
-            <tbody>
-              {saderBoxRecords.map((row: any) => {
-                return (
-                  <SaderTabelTR
-                    row={row}
-                    setOpennedSaderIdInOverlayId={setOpennedSaderIdInOverlayId}
-                  ></SaderTabelTR>
-                );
-              })}
-            </tbody>
-          </table>
+                      {/* <th scope="col">الإتجاه المختص</th> */}
+                      {/* <th scope="col">الضابط المختص</th> */}
+                      <th scope="col" style={{ width: "15%" }}>
+                        وجوب رد وارد رقم
+                      </th>
+                      {/* <th scope="col">متصلة بوارد</th> */}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fetchedSader.map((row: any) => {
+                      return (
+                        <SaderTabelTR
+                          row={row}
+                          setOpennedSaderIdInOverlayId={
+                            setOpennedSaderIdInOverlayId
+                          }
+                        ></SaderTabelTR>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div className="d-flex justify-content-center align-items-center">
+                  <div className="d-flex flex-column text-center">
+                    <span className="fs-3">رقم الصفحة :{pageNum}</span>
+
+                    <nav aria-label="Page navigation example" className="fs-4">
+                      <ul className="pagination">
+                        {pageNum > 1 && (
+                          <li className="page-item">
+                            <button
+                              className="page-link fs-3"
+                              onClick={() => {
+                                setPageNum(Number(pageNum) - 1);
+                              }}
+                            >
+                              الصفحة السابقة
+                            </button>
+                          </li>
+                        )}
+                        {fetchedSader.length >= numOfRecords && (
+                          <li className="page-item">
+                            <button
+                              className="page-link fs-3"
+                              onClick={() => {
+                                setPageNum(Number(pageNum) + 1);
+                              }}
+                            >
+                              الصفحةالتالية
+                            </button>
+                          </li>
+                        )}
+                      </ul>
+                    </nav>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
         )}
-        <div className="d-flex justify-content-center align-items-center">
-          <div className="d-flex flex-column text-center">
-            <span className="fs-3">رقم الصفحة :{pageNum}</span>
-
-            <nav aria-label="Page navigation example" className="fs-4">
-              <ul className="pagination">
-                {pageNum > 1 && (
-                  <li className="page-item">
-                    <button
-                      className="page-link fs-3"
-                      onClick={() => {
-                        setPageNum(pageNum - 1);
-                      }}
-                    >
-                      الصفحة السابقة
-                    </button>
-                  </li>
-                )}
-                {saderBoxRecords.length >= numOfRecords && (
-                  <li className="page-item">
-                    <button
-                      className="page-link fs-3"
-                      onClick={() => {
-                        setPageNum(pageNum + 1);
-                      }}
-                    >
-                      الصفحةالتالية
-                    </button>
-                  </li>
-                )}
-              </ul>
-            </nav>
-          </div>
-        </div>
       </div>
     </>
   );
