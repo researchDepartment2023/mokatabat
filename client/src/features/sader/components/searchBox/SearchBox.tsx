@@ -3,6 +3,8 @@ import axios from "axios";
 import isArrEmpty from "../../../../utils/isArrEmpty";
 import isObjEmpty from "../../../../utils/isObjEmpty";
 import Select from "react-select";
+import get from "../../../serverApis/get";
+import { useQuery } from "react-query";
 
 interface SearchFormProps {
   setDocNum: any;
@@ -25,9 +27,6 @@ interface SearchFormProps {
 }
 function SearchBox(props: SearchFormProps) {
   const [isSearched, setIsSearched] = useState(false);
-  const [gehaatOptions, setGehaatOptions] = useState([]);
-  const [branchsOptions, setBranchsOptions] = useState([]);
-  const [officersOptions, setOfficersOptions] = useState([""]);
 
   const clearSearchParamsAndRefetch = () => {
     props.setDocNum("");
@@ -42,13 +41,25 @@ function SearchBox(props: SearchFormProps) {
 
     props.fetchSearchResults();
   };
-  useEffect(() => {
+  /*   useEffect(() => {
     axios.get("/api/saderoptions").then((res) => {
       setGehaatOptions(res.data.gehaat);
       setBranchsOptions(res.data.branches);
       setOfficersOptions(res.data.officers);
     });
-  }, []);
+  }, []); */
+
+  const {
+    data: saderOptions,
+    isSuccess: isSaderOptionsSuccessed,
+    error,
+    refetch: refetchSaderOptions,
+  } = useQuery(["saderOptions"], () => {
+    return get("/api/saderoptions");
+  });
+
+  console.log(saderOptions);
+
   const getOptionNameById = useCallback((optionId: string, options: any[]) => {
     // console.log({gehaaId})
     let optionObj: any = options.find((option: any) => option.id === optionId);
@@ -120,37 +131,43 @@ function SearchBox(props: SearchFormProps) {
               }}
             />
           </div>
-          <div className="col-md-3">
-            <label className="form-label">جهة الصادر</label>
-            <Select
-              value={{
-                value: props.gehaaId,
-                label: getGehaaNameById(props.gehaaId, gehaatOptions),
-              }}
-              onChange={(gehaaOption: any) => {
-                props.setGehaaId(gehaaOption.value);
-              }}
-              options={gehaatOptions.map((gehaa: any) => {
-                return {
-                  value: gehaa.id,
-                  label: gehaa.name,
-                };
-              })}
-            />
-          </div>
 
-          {!isArrEmpty(officersOptions) && (
+          {isSaderOptionsSuccessed && (
+            <div className="col-md-3">
+              <label className="form-label">جهة الصادر</label>
+              <Select
+                value={{
+                  value: props.gehaaId,
+                  label: getGehaaNameById(props.gehaaId, saderOptions.gehaat),
+                }}
+                onChange={(gehaaOption: any) => {
+                  props.setGehaaId(gehaaOption.value);
+                }}
+                options={saderOptions.gehaat.map((gehaa: any) => {
+                  return {
+                    value: gehaa.id,
+                    label: gehaa.name,
+                  };
+                })}
+              />
+            </div>
+          )}
+
+          {isSaderOptionsSuccessed && (
             <div className="col-md-3">
               <label className="form-label">الضابط المختص</label>
               <Select
                 value={{
                   value: props.officerId,
-                  label: getOfficerNameById(props.officerId, officersOptions),
+                  label: getOfficerNameById(
+                    props.officerId,
+                    saderOptions.officers
+                  ),
                 }}
                 onChange={(officerOption: any) => {
                   props.setOfficerId(officerOption.value);
                 }}
-                options={officersOptions.map((branch: any) => {
+                options={saderOptions.officers.map((branch: any) => {
                   return {
                     value: branch.id,
                     label: branch.name,
@@ -160,18 +177,21 @@ function SearchBox(props: SearchFormProps) {
             </div>
           )}
 
-          {!isArrEmpty(branchsOptions) && (
+          {isSaderOptionsSuccessed && (
             <div className="col-md-3">
               <label className="form-label">الفرع المختص</label>
               <Select
                 value={{
                   value: props.branchId,
-                  label: getBranchNameById(props.branchId, branchsOptions),
+                  label: getBranchNameById(
+                    props.branchId,
+                    saderOptions.branches
+                  ),
                 }}
                 onChange={(branchOption: any) => {
                   props.setBranchId(branchOption.value);
                 }}
-                options={branchsOptions.map((branch: any) => {
+                options={saderOptions.branches.map((branch: any) => {
                   return {
                     value: branch.id,
                     label: branch.name,

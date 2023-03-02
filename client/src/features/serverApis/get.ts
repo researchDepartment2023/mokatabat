@@ -1,8 +1,8 @@
 import axios from "axios";
 
-const get = async (params: any, apiLink: string) => {
+const get = async (apiLink: string, params: any = {}) => {
   const { data } = await axios.get<any>(apiLink, {
-    params: params,
+    params,
   });
   return data;
 };

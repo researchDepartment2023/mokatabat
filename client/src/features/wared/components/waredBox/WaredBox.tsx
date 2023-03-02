@@ -95,7 +95,7 @@ function WaredBox(props: IProps) {
         unreadWared: isFetchUnreadWared,
       };
 
-      return get(params, "/api/waredbox/search");
+      return get("/api/waredbox/search", params);
     }
   );
 

@@ -63,7 +63,7 @@ function SaderBox() {
         unreadSader: isFetchUnreadSader,
       };
 
-      return get(params, "/api/saderbox/search");
+      return get("/api/saderbox/search", params);
     }
   );
 
